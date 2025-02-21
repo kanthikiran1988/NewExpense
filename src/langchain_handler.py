@@ -6,6 +6,7 @@ from datetime import datetime
 from config import Config
 import base64
 from aiohttp import ClientSession
+from contoso_store_handler import store_handler
 
 class LangchainMessageHandler:
     def __init__(self):
@@ -63,12 +64,15 @@ class LangchainMessageHandler:
                 ]
             else:
                 messages = [
-                    SystemMessage(content="""You are a helpful AI assistant that helps with expense management. 
-                    You can help with:
-                    1. Understanding receipts and invoices
-                    2. Categorizing expenses
-                    3. Providing expense insights
-                    4. Answering questions about expense policies
+                    SystemMessage(content="""You are a helpful AI assistant with access to Contoso store information through a specialized API. 
+                    Your task is to:
+                    1. Determine if the user's question is about products, store information, or shopping at Contoso
+                    2. For store-related queries, respond with: {"use_store_api": true, "query": "<user's question>"}
+                    3. For non-store queries about expense management, help with:
+                       - Understanding receipts and invoices
+                       - Categorizing expenses
+                       - Providing expense insights
+                       - Answering questions about expense policies
                     Be concise but informative in your responses."""),
                     HumanMessage(content=message_text)
                 ]
@@ -77,6 +81,39 @@ class LangchainMessageHandler:
             response = await self.llm.ainvoke(messages)
             print("Received response from LLM")
             print(f"Response: {response.content}")
+
+            # Check if the response indicates we should use the store API
+            try:
+                if not image_url and response.content.__contains__('"use_store_api": true'):
+                    print("Using store API...")
+                    api_response = json.loads(response.content)
+                    if api_response.get("use_store_api"):
+                        # Call the store API
+                        try:
+                            store_result = await store_handler.get_store_response(api_response["query"])
+                            if store_result["success"]:
+                                return {
+                                    "success": True,
+                                    "response": store_result["response"]
+                                }
+                            else:
+                                return {
+                                    "success": False,
+                                    "error": "Unable to access store information at this time. Please try again later."
+                                }
+                        except Exception as e:
+                            print(f"Error calling store API: {str(e)}")
+                            return {
+                                "success": False,
+                                "error": "Error calling store API",
+                                "metadata": {
+                                    "processed_at": datetime.utcnow().isoformat(),
+                                    "error_type": type(e).__name__
+                                }
+                            }
+            except:
+                pass  # If parsing fails, treat it as a normal response
+
 
             return {
                 "success": True,

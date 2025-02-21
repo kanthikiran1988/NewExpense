@@ -1,3 +1,7 @@
 python-dotenv
 aiohttp
 teams-ai>=1.6.0,<2.0.0
+python-multipart
+langchain_openai
+langchain_core
+botbuilder
