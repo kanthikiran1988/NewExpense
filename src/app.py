@@ -12,13 +12,13 @@ from botbuilder.schema import Activity
 from botbuilder.core import BotFrameworkAdapter, BotFrameworkAdapterSettings
 import json
 
-from bot import bot_app
+#from bot import bot_app
 from config import Config
 from botbuilder.core import TurnContext
 from langchain_handler import message_handler  # Import the new handler
 
 # Create the web app
-APP = web.Application(middlewares=[aiohttp_error_middleware])
+app = web.Application(middlewares=[aiohttp_error_middleware])
 
 # Load configuration
 CONFIG = Config()
@@ -100,12 +100,12 @@ async def messages(req: Request) -> Response:
         return Response(status=500, text=str(e))
 
 # Add routes
-APP.router.add_get("/health", health_check)
-APP.router.add_post("/api/messages", messages)
+app.router.add_get("/health", health_check)
+app.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
     try:
-        web.run_app(APP, host="localhost", port=3978)
+        web.run_app(app, host="localhost", port=CONFIG.PORT)
     except Exception as error:
         print(f"Error running app: {error}")
         raise error
